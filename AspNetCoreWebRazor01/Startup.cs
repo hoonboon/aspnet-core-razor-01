@@ -9,6 +9,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using AspNetCoreWebRazor01.Data;
+using Microsoft.AspNetCore.Identity;
 
 namespace AspNetCoreWebRazor01
 {
@@ -28,6 +29,9 @@ namespace AspNetCoreWebRazor01
 
             services.AddDbContext<MyAppContext>(options =>
                     options.UseSqlServer(Configuration.GetConnectionString("MyAppContext")));
+            services.AddDefaultIdentity<IdentityUser>(options => options.SignIn.RequireConfirmedAccount = true)
+                .AddEntityFrameworkStores<MyAppContext>();
+
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -46,6 +50,7 @@ namespace AspNetCoreWebRazor01
 
             app.UseRouting();
 
+            app.UseAuthentication();
             app.UseAuthorization();
 
             app.UseEndpoints(endpoints =>
