@@ -7,16 +7,20 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 using AspNetCoreWebRazor01.Data;
 using AspNetCoreWebRazor01.Models;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
+using AspNetCoreWebRazor01.Authorization;
 
 namespace AspNetCoreWebRazor01.Pages.Movies
 {
-    public class DeleteModel : PageModel
+    public class DeleteModel : DI_BasePageModel
     {
-        private readonly AspNetCoreWebRazor01.Data.MyAppContext _context;
-
-        public DeleteModel(AspNetCoreWebRazor01.Data.MyAppContext context)
+        public DeleteModel(
+            AspNetCoreWebRazor01.Data.MyAppContext context,
+            IAuthorizationService authorizationService,
+            UserManager<IdentityUser> userManager)
+            : base(context, authorizationService, userManager)
         {
-            _context = context;
         }
 
         [BindProperty]
@@ -29,12 +33,20 @@ namespace AspNetCoreWebRazor01.Pages.Movies
                 return NotFound();
             }
 
-            Movie = await _context.Movie.FirstOrDefaultAsync(m => m.ID == id);
+            Movie = await Context.Movie.FirstOrDefaultAsync(m => m.ID == id);
 
             if (Movie == null)
             {
                 return NotFound();
             }
+
+            var isAuthorized = await AuthorizationService.AuthorizeAsync(
+                User, Movie, AppOperations.Delete);
+            if (!isAuthorized.Succeeded)
+            {
+                return Forbid();
+            }
+
             return Page();
         }
 
@@ -45,13 +57,24 @@ namespace AspNetCoreWebRazor01.Pages.Movies
                 return NotFound();
             }
 
-            Movie = await _context.Movie.FindAsync(id);
+            var movie = await Context.Movie
+                .AsNoTracking()
+                .FirstOrDefaultAsync(m => m.ID == id);
 
-            if (Movie != null)
+            if (movie == null)
             {
-                _context.Movie.Remove(Movie);
-                await _context.SaveChangesAsync();
+                return NotFound();
             }
+
+            var isAuthorized = await AuthorizationService.AuthorizeAsync(
+                User, movie, AppOperations.Delete);
+            if (!isAuthorized.Succeeded)
+            {
+                return Forbid();
+            }
+
+            Context.Movie.Remove(movie);
+            await Context.SaveChangesAsync();
 
             return RedirectToPage("./Index");
         }

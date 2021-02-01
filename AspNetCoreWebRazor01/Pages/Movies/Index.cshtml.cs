@@ -8,16 +8,20 @@ using Microsoft.EntityFrameworkCore;
 using AspNetCoreWebRazor01.Data;
 using AspNetCoreWebRazor01.Models;
 using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
+using AspNetCoreWebRazor01.Authorization;
 
 namespace AspNetCoreWebRazor01.Pages.Movies
 {
-    public class IndexModel : PageModel
+    public class IndexModel : DI_BasePageModel
     {
-        private readonly AspNetCoreWebRazor01.Data.MyAppContext _context;
-
-        public IndexModel(AspNetCoreWebRazor01.Data.MyAppContext context)
+        public IndexModel(
+            AspNetCoreWebRazor01.Data.MyAppContext context,
+            IAuthorizationService authorizationService,
+            UserManager<IdentityUser> userManager)
+            : base(context, authorizationService, userManager)
         {
-            _context = context;
         }
 
         public IList<Movie> Movie { get;set; }
@@ -33,7 +37,7 @@ namespace AspNetCoreWebRazor01.Pages.Movies
         public async Task OnGetAsync()
         {
             // get genres options
-            var genres = from m in _context.Movie
+            var genres = from m in Context.Movie
                          orderby m.Genre
                          select m.Genre;
             
@@ -41,8 +45,22 @@ namespace AspNetCoreWebRazor01.Pages.Movies
                 await genres.Distinct().ToListAsync());
 
             // get movie list
-            var movies = from m in _context.Movie
+            var movies = from m in Context.Movie
                          select m;
+
+            var isAuthorized = User.IsInRole(Constants.MovieManagersRole) 
+                || User.IsInRole(Constants.MovieAdministratorsRole);
+
+            var currentUserId = UserManager.GetUserId(User);
+
+            // Only approved movies are shown UNLESS you're authorized to see them
+            // or you are the owner.
+            if (!isAuthorized)
+            {
+                movies = movies.Where(
+                    m => m.Status == MovieStatus.Approved 
+                    || m.OwnerID == currentUserId);
+            }
 
             if (!string.IsNullOrEmpty(SearchString))
             {

@@ -1,5 +1,6 @@
 using AspNetCoreWebRazor01.Data;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -20,16 +21,30 @@ namespace AspNetCoreWebRazor01
             using (var scope = host.Services.CreateScope())
             {
                 var services = scope.ServiceProvider;
-
+                var logger = services.GetRequiredService<ILogger<Program>>();
                 try
                 {
-                    SeedData.Initialize(services);
+                    var context = services.GetRequiredService<MyAppContext>();
+                    logger.LogInformation("database migrate start");
+                    context.Database.Migrate();
+                    logger.LogInformation("database migrate end");
+
+                    // requires using Microsoft.Extensions.Configuration;
+                    var config = host.Services.GetRequiredService<IConfiguration>();
+                    
+                    // Set password in appsettings.json
+                    var testUserPw = config["SeedData:DefaultUserPwd"];
+                    logger.LogInformation($"using testUserPw={testUserPw}");
+                    
+                    logger.LogInformation("seed data start");
+                    SeedData.Initialize(services, testUserPw).Wait();
+                    logger.LogInformation("seed data end");
                 }
                 catch (Exception ex)
                 {
-                    var logger = services.GetRequiredService<ILogger<Program>>();
                     logger.LogError(ex, "An error occurred seeding the DB.");
                 }
+
             }
 
             host.Run();

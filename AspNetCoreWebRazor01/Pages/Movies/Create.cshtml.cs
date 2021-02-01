@@ -7,16 +7,20 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using AspNetCoreWebRazor01.Data;
 using AspNetCoreWebRazor01.Models;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
+using AspNetCoreWebRazor01.Authorization;
 
 namespace AspNetCoreWebRazor01.Pages.Movies
 {
-    public class CreateModel : PageModel
+    public class CreateModel : DI_BasePageModel
     {
-        private readonly AspNetCoreWebRazor01.Data.MyAppContext _context;
-
-        public CreateModel(AspNetCoreWebRazor01.Data.MyAppContext context)
+        public CreateModel(
+            AspNetCoreWebRazor01.Data.MyAppContext context,
+            IAuthorizationService authorizationService,
+            UserManager<IdentityUser> userManager) 
+            : base(context, authorizationService, userManager)
         {
-            _context = context;
         }
 
         public IActionResult OnGet()
@@ -36,8 +40,18 @@ namespace AspNetCoreWebRazor01.Pages.Movies
                 return Page();
             }
 
-            _context.Movie.Add(Movie);
-            await _context.SaveChangesAsync();
+            Movie.OwnerID = UserManager.GetUserId(User);
+
+            var isAuthorized = await AuthorizationService.AuthorizeAsync(
+                User, Movie, AppOperations.Create);
+
+            if (!isAuthorized.Succeeded)
+            {
+                return Forbid();
+            }
+            
+            Context.Movie.Add(Movie);
+            await Context.SaveChangesAsync();
 
             return RedirectToPage("./Index");
         }

@@ -35,6 +35,19 @@ namespace AspNetCoreWebRazor01.Models
         [Required]
         public string Rating { get; set; }
 
+        // user ID from AspNetUser table.
+        public string OwnerID { get; set; }
+
+        public MovieStatus Status { get; set; }
+
     }
+
+    public enum MovieStatus
+    {
+        Submitted,
+        Approved,
+        Rejected
+    }
+
 
 }

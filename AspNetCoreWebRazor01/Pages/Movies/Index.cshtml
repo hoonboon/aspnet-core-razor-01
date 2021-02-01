@@ -40,6 +40,9 @@
             <th>
                 @Html.DisplayNameFor(model => model.Movie[0].Rating)
             </th>
+            <th>
+                @Html.DisplayNameFor(model => model.Movie[0].Status)
+            </th>
             <th></th>
         </tr>
     </thead>
@@ -63,9 +66,26 @@
                 @Html.DisplayFor(modelItem => item.Rating)
             </td>
             <td>
-                <a asp-page="./Edit" asp-route-id="@item.ID">Edit</a> |
-                <a asp-page="./Details" asp-route-id="@item.ID">Details</a> |
-                <a asp-page="./Delete" asp-route-id="@item.ID">Delete</a>
+                @Html.DisplayFor(modelItem => item.Status)
+            </td>
+            <td>
+                @if ((await AuthorizationService.AuthorizeAsync(
+                    User, item,
+                    AppOperations.Update)).Succeeded)
+                {
+                    <a asp-page="./Edit" asp-route-id="@item.ID">Edit</a>
+                    <text> | </text>
+                }
+
+                <a asp-page="./Details" asp-route-id="@item.ID">Details</a>
+
+                @if ((await AuthorizationService.AuthorizeAsync(
+                    User, item,
+                    AppOperations.Delete)).Succeeded)
+                {
+                    <text> | </text>
+                    <a asp-page="./Delete" asp-route-id="@item.ID">Delete</a>
+                }
             </td>
         </tr>
         }

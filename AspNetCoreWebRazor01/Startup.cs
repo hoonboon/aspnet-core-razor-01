@@ -10,6 +10,8 @@ using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using AspNetCoreWebRazor01.Data;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Authorization;
+using AspNetCoreWebRazor01.Authorization;
 
 namespace AspNetCoreWebRazor01
 {
@@ -30,7 +32,22 @@ namespace AspNetCoreWebRazor01
             services.AddDbContext<MyAppContext>(options =>
                     options.UseSqlServer(Configuration.GetConnectionString("MyAppContext")));
             services.AddDefaultIdentity<IdentityUser>(options => options.SignIn.RequireConfirmedAccount = true)
+                .AddRoles<IdentityRole>()
                 .AddEntityFrameworkStores<MyAppContext>();
+
+            services.AddAuthorization(options =>
+            {
+                options.FallbackPolicy = new AuthorizationPolicyBuilder()
+                    .RequireAuthenticatedUser()
+                    .Build();
+            });
+
+            // Authorization handlers.
+            services.AddScoped<IAuthorizationHandler, MovieIsOwnerAuthorizationHandler>();
+
+            services.AddSingleton<IAuthorizationHandler, MovieAdministratorAuthorizationHandler>();
+
+            services.AddSingleton<IAuthorizationHandler, MovieManagerAuthorizationHandler>();
 
         }
 
